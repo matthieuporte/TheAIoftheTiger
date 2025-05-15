@@ -55,11 +55,7 @@ It is also possible to print the constructed AST of the program using the `--sho
   * The subdirectory `good/` contain programs with **only valid array accesses**. Your goal is to make your analysis **precise enough** to recognize them as valid as often as possible.
   * The subdirectory `bad/` contain programs with **only invalid array access**. Your goal is to keep your analysis **sound**, ensuring that these access are **not mistakenly accepted** as valid.
   * The subdirectory `interpreter/` contains simple Tiger programs not necessarilly with array accesses. Their purpose is to let you observe how your analysis behaves on small, readable examples.
-- The `src` directory contains the sources:
-  * `ast/` contains everything source file related (ast, lexer, parser)
-  * `interpreter/` contains everything related the interpreter
-  * `analyzer/` contains everything related the static analyzer
-  
+- The `src` directory contains the sources  
 
 # Your job
 - You will go through the steps below to build both an interpreter and an analyzer for the tiger language.
