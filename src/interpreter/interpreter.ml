@@ -36,7 +36,11 @@ let rec eval_expr (state : State.t) (e : expr) : Value.t * State.t =
       let func = State.find_fun name state in
       (func args, state)
      (* complete the function and keep this wildcard card until it becomes redundant *)
-     | _ -> Format.asprintf "(%s)" __FUNCTION__ |> Utils.niy
+  | String s -> (String s, state)
+  | Let (chunks, body) ->
+    eval_body (eval_chunks state chunks) body 
+    
+  | _ -> Format.asprintf "(%s)" __FUNCTION__ |> Utils.niy
 
 (* Writes a value to the location referred to by the given lvalue,
    returning the updated state.  This may involve evaluating
@@ -63,6 +67,8 @@ and read_lvalue (state : State.t) (lv : lvalue) : Value.t * State.t =
      (* complete the function and keep this wildcard card until it becomes redundant *)
      | _ -> Format.asprintf "(%s)" __FUNCTION__ |> Utils.niy
 
+and eval_seq (state: State.t) (seq_expr: expr list) : Value.t * State.t =
+  List.fold_left (fun (_, s) e  -> eval_expr s e) (Void, state) seq_expr 
 
 and eval_chunks (state : State.t) (chunks : chunk list) : State.t =
   List.fold_left eval_chunk state chunks
@@ -83,21 +89,25 @@ let print_int out = function
   | [ Int x ] ->
       Format.fprintf out "%i%!" x;
       Void
-  | _ -> failwith "type error"
+  | _ -> failwith "print_int: type error"
 
 let print out = function
   | [ String x ] ->
       Format.fprintf out "%s%!" x;
       Void
-  | _ -> failwith "type error"
+  | _ -> failwith "print: type error"
 
 let concat = function
-     (* complete the function *)
-     | _ -> Format.asprintf "(%s) not implemented" __FUNCTION__ |> Utils.niy
+     (* Concatenates two strings *)
+  | [ String a; String b ] ->
+    String (a ^ b)
+  | _ -> failwith "concat: type error"
 
 let range = function
-   (* complete the function *)
-   | _ -> Format.asprintf "(%s) not implemented" __FUNCTION__ |> Utils.niy
+   (* returns a value between low and high *)
+  | [ Int low; Int high ] ->
+      Int (Random.int (high - low) + low)
+  | _ -> failwith "range: type error"
 
 (* Evaluates a Tiger program with an optional output formatter.
    Initializes the runtime environment with built-in functions and
