@@ -86,8 +86,17 @@ and eval_chunk (state : State.t) (c : chunk) : State.t =
          into account, but the result is dicarded *)
       let _, state = eval_expr state e in
       state
-     (* complete the function and keep this wildcard card until it becomes redundant *)
-     | _ -> Format.asprintf "%a (%s)" Ast.print_chunk c __FUNCTION__ |> Utils.niy
+  (* | Typedec name t -> failwith "Not implemented" *)
+  | Vardec (id, t, e) ->
+     let v, _ = eval_expr state e in
+     let new_state = State.add_value id v state in
+     new_state
+
+     (* let new_state = Env.add id value state.values in *)
+     (* new_state  *)
+
+  (* complete the function and keep this wildcard card until it becomes redundant *)
+  | _ -> Format.asprintf "%a (%s)" Ast.print_chunk c __FUNCTION__ |> Utils.niy
 
 open Value
 
