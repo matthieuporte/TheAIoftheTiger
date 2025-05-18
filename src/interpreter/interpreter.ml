@@ -47,6 +47,18 @@ let rec eval_expr (state : State.t) (e : expr) : Value.t * State.t =
         let v = State.find_value s state in
         (v, state)
      | _ -> failwith "Array manipulation not implemented")
+  | Binop (e1, op, e2) ->
+     let v1, s1 = eval_expr state e1 in
+     let v2, s2 = eval_expr s1 e2 in
+     let int1 = Value.cast_int e1.loc v1
+     and int2 = Value.cast_int e2.loc v2 in
+     (match op with
+     | Add -> (Int (int1 + int2), s2)
+     | Sub -> (Int (int1 - int2), s2)
+     | Mul -> (Int (int1 * int2), s2)
+     | Div -> (Int (int1 / int2), s2)
+     )
+
     
   | _ -> Format.asprintf "(%s)" __FUNCTION__ |> Utils.niy
 
