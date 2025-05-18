@@ -142,7 +142,10 @@ let concat = function
 let range = function
    (* returns a value between low and high *)
   | [ Int low; Int high ] ->
-      Int (Random.int (high - low) + low)
+     Random.self_init();
+     (* +1 because upper value is not included *)
+     let r = Random.int (high - low + 1) in
+     Int (r + low)
   | _ -> failwith "range: type error"
 
 (* Evaluates a Tiger program with an optional output formatter.
