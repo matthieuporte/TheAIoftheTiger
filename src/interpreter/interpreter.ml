@@ -38,7 +38,7 @@ let rec eval_expr (state : State.t) (e : expr) : Value.t * State.t =
      (* complete the function and keep this wildcard card until it becomes redundant *)
   | String s -> (String s, state)
   | Let (chunks, body) ->
-    eval_body (eval_chunks state chunks) body 
+    eval_seq (eval_chunks state chunks) body 
     
   | _ -> Format.asprintf "(%s)" __FUNCTION__ |> Utils.niy
 
@@ -68,7 +68,13 @@ and read_lvalue (state : State.t) (lv : lvalue) : Value.t * State.t =
      | _ -> Format.asprintf "(%s)" __FUNCTION__ |> Utils.niy
 
 and eval_seq (state: State.t) (seq_expr: expr list) : Value.t * State.t =
-  List.fold_left (fun (_, s) e  -> eval_expr s e) (Void, state) seq_expr 
+  match seq_expr with
+   | [] -> failwith "eval_seq: empty list"
+   | [ e ] -> eval_expr state e
+   | e :: tail ->
+      let _, new_state = eval_expr state e in
+      eval_seq new_state tail
+  (* List.fold_left (fun (_, s) e  -> eval_expr s e) (Void, state) seq_expr  *)
 
 and eval_chunks (state : State.t) (chunks : chunk list) : State.t =
   List.fold_left eval_chunk state chunks
