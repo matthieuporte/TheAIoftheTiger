@@ -35,7 +35,6 @@ let rec eval_expr (state : State.t) (e : expr) : Value.t * State.t =
       in
       let func = State.find_fun name state in
       (func args, state)
-     (* complete the function and keep this wildcard card until it becomes redundant *)
   | String s -> (String s, state)
   | Let (chunks, body) ->
      let new_state = eval_chunks state chunks in 
@@ -46,7 +45,11 @@ let rec eval_expr (state : State.t) (e : expr) : Value.t * State.t =
   | Lval lv -> read_lvalue state lv
   | Binop (e1, op, e2) -> eval_binop state e1 op e2
   | Seq body -> eval_seq state body
+  | Assign (lv, e) ->
+     let v,s = eval_expr state e in
+     v, write_lvalue s lv v
     
+     (* complete the function and keep this wildcard card until it becomes redundant *)
   | _ -> Format.asprintf "(%s)" __FUNCTION__ |> Utils.niy
 
 (* Writes a value to the location referred to by the given lvalue,
