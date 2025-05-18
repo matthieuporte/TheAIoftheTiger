@@ -38,10 +38,14 @@ let rec eval_expr (state : State.t) (e : expr) : Value.t * State.t =
      (* complete the function and keep this wildcard card until it becomes redundant *)
   | String s -> (String s, state)
   | Let (chunks, body) ->
-    eval_seq (eval_chunks state chunks) body 
+     let new_state = eval_chunks state chunks in 
+     (* this is to put back the precedent state after
+        the end of the let in end *)
+     let v, _ = eval_seq new_state body in
+     v, state
   | Lval lv -> read_lvalue state lv
   | Binop (e1, op, e2) -> eval_binop state e1 op e2
-
+  | Seq body -> eval_seq state body
     
   | _ -> Format.asprintf "(%s)" __FUNCTION__ |> Utils.niy
 
@@ -75,6 +79,7 @@ and eval_seq (state: State.t) (seq_expr: expr list) : Value.t * State.t =
    | [] -> failwith "eval_seq: empty list"
    | [ e ] -> eval_expr state e
    | e :: tail ->
+      (* let _ = Printf.printf "e\n" in *)
       let _, new_state = eval_expr state e in
       eval_seq new_state tail
   (* List.fold_left (fun (_, s) e  -> eval_expr s e) (Void, state) seq_expr  *)
