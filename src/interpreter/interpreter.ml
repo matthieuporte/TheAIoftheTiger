@@ -39,6 +39,14 @@ let rec eval_expr (state : State.t) (e : expr) : Value.t * State.t =
   | String s -> (String s, state)
   | Let (chunks, body) ->
     eval_seq (eval_chunks state chunks) body 
+
+  (* TODO: deal with arrays *)
+  | Lval l ->
+     (match l.payload with
+     | Var s ->
+        let v = State.find_value s state in
+        (v, state)
+     | _ -> failwith "Array manipulation not implemented")
     
   | _ -> Format.asprintf "(%s)" __FUNCTION__ |> Utils.niy
 
@@ -88,8 +96,9 @@ and eval_chunk (state : State.t) (c : chunk) : State.t =
       state
   (* | Typedec name t -> failwith "Not implemented" *)
   | Vardec (id, t, e) ->
-     let v, _ = eval_expr state e in
-     let new_state = State.add_value id v state in
+     (* let _ = Printf.printf "\nHello\n" in *)
+     let v, s = eval_expr state e in
+     let new_state = State.add_value id v s in
      new_state
 
      (* let new_state = Env.add id value state.values in *)

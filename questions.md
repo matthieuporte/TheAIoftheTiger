@@ -8,3 +8,23 @@ Comment matcher un custom type ?
 ```
 
 pourquoi il y a des Exp dans `eval_chunk` ? 
+La doc tiger :
+
+```
+(* === Chunks of declarations. === *)
+chunks = { chunk } ;
+chunk =
+    { tydec }   (* tychunk *)
+  | { fundec }  (* funchunk *)
+  | vardec      (* varchunk *)
+
+  (* Importing a set of declarations. *)
+  | "import" string
+  ;
+```
+
+Je ne comprends pas comment manipuler :
+
+```
+type expr = expr_payload located
+```
