@@ -37,11 +37,13 @@ let rec eval_expr (state : State.t) (e : expr) : Value.t * State.t =
       (func args, state)
   | String s -> (String s, state)
   | Let (chunks, body) ->
-     let new_state = eval_chunks state chunks in 
+     let new_scope = State.enter_scope(state) in
+     let new_state = eval_chunks new_scope chunks in 
      (* this is to put back the precedent state after
         the end of the let in end *)
-     let v, _ = eval_seq new_state body in
-     v, state
+     let v, s = eval_seq new_state body in
+     let old_scope = State.exit_scope(s) in
+     v, old_scope
   | Lval lv -> read_lvalue state lv
   | Binop (e1, op, e2) -> eval_binop state e1 op e2
   | Relop (e1, op, e2) ->
@@ -63,7 +65,7 @@ let rec eval_expr (state : State.t) (e : expr) : Value.t * State.t =
      v, write_lvalue s lv v
   | IfThenElse (e1, e2, e3) -> eval_if state e1 e2 e3
   | While (e1, e2) -> eval_while state e1 e2
-
+  (* | ArrayInit (s, e1, e2) -> None, *)
          
     
      (* complete the function and keep this wildcard card until it becomes redundant *)
