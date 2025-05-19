@@ -39,8 +39,6 @@ let rec eval_expr (state : State.t) (e : expr) : Value.t * State.t =
   | Let (chunks, body) ->
      let new_scope = State.enter_scope(state) in
      let new_state = eval_chunks new_scope chunks in 
-     (* this is to put back the precedent state after
-        the end of the let in end *)
      let v, s = eval_seq new_state body in
      let old_scope = State.exit_scope(s) in
      v, old_scope
@@ -65,25 +63,20 @@ let rec eval_expr (state : State.t) (e : expr) : Value.t * State.t =
      v, write_lvalue s lv v
   | IfThenElse (e1, e2, e3) -> eval_if state e1 e2 e3
   | While (e1, e2) -> eval_while state e1 e2
-  (* | ArrayInit (s, e1, e2) -> None, *)
-         
-    
-     (* complete the function and keep this wildcard card until it becomes redundant *)
-  | _ -> Format.asprintf "(%s)" __FUNCTION__ |> Utils.niy
+  | ArrayInit (s, e1, e2) -> eval_expr state e1
+
 
 (* Writes a value to the location referred to by the given lvalue,
    returning the updated state.  This may involve evaluating
    subexpressions with side effects (e.g. array indices), and in the
    case of nested lvalues (such as array elements), recursively
    updates the structure.
-
    hint: Use Value.array_set
 *)
 and write_lvalue (state : State.t) (lv : lvalue) (value : Value.t) : State.t =
   match lv.payload with
   | Var id -> State.update_value id value state
-     (* complete the function and keep this wildcard card until it becomes redundant *)
-     | _ -> Format.asprintf "%a (%s)" Ast.print_lvalue lv __FUNCTION__ |> Utils.niy
+  | Array (lv, e) -> failwith "Not implemented"
 
 (* Resolves an lvalue to the value it refers to, returning the value
    and the updated state.  This may involve evaluating subexpressions
@@ -93,8 +86,7 @@ and write_lvalue (state : State.t) (lv : lvalue) (value : Value.t) : State.t =
 and read_lvalue (state : State.t) (lv : lvalue) : Value.t * State.t =
   match lv.payload with
   | Var id -> (State.find_value id state, state)
-     (* complete the function and keep this wildcard card until it becomes redundant *)
-     | _ -> Format.asprintf "(%s)" __FUNCTION__ |> Utils.niy
+  | Array (lv, e) -> failwith "Not implemented"
 
 and eval_seq (state: State.t) (seq_expr: expr list) : Value.t * State.t =
   match seq_expr with
@@ -109,25 +101,16 @@ and eval_seq (state: State.t) (seq_expr: expr list) : Value.t * State.t =
 and eval_chunks (state : State.t) (chunks : chunk list) : State.t =
   List.fold_left eval_chunk state chunks
 
+(* we evaluate the expressions so that it's side effects are taken
+    into account, but the result is dicarded *)
 and eval_chunk (state : State.t) (c : chunk) : State.t =
   match c.payload with
-  | Exp e ->
-      (* we evaluate the expression so that it's side effects are taken
-         into account, but the result is dicarded *)
-      let _, state = eval_expr state e in
-      state
-  (* | Typedec name t -> failwith "Not implemented" *)
+  | Exp e -> let _, s = eval_expr state e in s
+  | Typedec (name, t) -> failwith "Not implemented"
   | Vardec (id, t, e) ->
-     (* let _ = Printf.printf "\nHello\n" in *)
      let v, s = eval_expr state e in
      let new_state = State.add_value id v s in
      new_state
-
-     (* let new_state = Env.add id value state.values in *)
-     (* new_state  *)
-
-  (* complete the function and keep this wildcard card until it becomes redundant *)
-  | _ -> Format.asprintf "%a (%s)" Ast.print_chunk c __FUNCTION__ |> Utils.niy
 
 and eval_if (state : State.t) (e1 : expr) (e2 : expr) (e3 : expr option) =
      let v,s = eval_expr state e1 in
