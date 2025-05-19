@@ -44,10 +44,27 @@ let rec eval_expr (state : State.t) (e : expr) : Value.t * State.t =
      v, state
   | Lval lv -> read_lvalue state lv
   | Binop (e1, op, e2) -> eval_binop state e1 op e2
+  | Relop (e1, op, e2) ->
+     let v1,s1 = eval_expr state e1 in
+     let v2,s2 = eval_expr s1 e2 in
+     let r = relop_to_fun op v1 v2 in
+     (Int r, s2)
+  | Boolop (e1, op, e2) ->
+     let v,s = eval_expr state e1 in
+     let int1 = Value.cast_int e1.loc v in
+     (match op, int1 with
+        | And, 0 -> v,s
+        | And, _ -> eval_expr s e2
+        | Or, 0 -> eval_expr s e2
+        | Or, _ -> v,s)
   | Seq body -> eval_seq state body
   | Assign (lv, e) ->
      let v,s = eval_expr state e in
      v, write_lvalue s lv v
+  | IfThenElse (e1, e2, e3) -> eval_if state e1 e2 e3
+  | While (e1, e2) -> eval_while state e1 e2
+
+         
     
      (* complete the function and keep this wildcard card until it becomes redundant *)
   | _ -> Format.asprintf "(%s)" __FUNCTION__ |> Utils.niy
@@ -109,6 +126,23 @@ and eval_chunk (state : State.t) (c : chunk) : State.t =
 
   (* complete the function and keep this wildcard card until it becomes redundant *)
   | _ -> Format.asprintf "%a (%s)" Ast.print_chunk c __FUNCTION__ |> Utils.niy
+
+and eval_if (state : State.t) (e1 : expr) (e2 : expr) (e3 : expr option) =
+     let v,s = eval_expr state e1 in
+     let int1 = Value.cast_int e1.loc v in
+     (match int1, e3 with
+     | 0, None -> v,s 
+     | 0 ,_ -> eval_expr s (Option.get e3)
+     | _, _ -> eval_expr s e2)
+
+and eval_while (state : State.t) (e1 : expr) (e2 : expr) =
+     let v,s = eval_expr state e1 in
+     let int1 = Value.cast_int e1.loc v in
+     if int1 <> 0 then (* true *)
+       let v2, s2 = eval_expr s e2 in
+       eval_while s2 e1 e2
+     else (* false *)
+       v,s
 
 and eval_binop (state : State.t) (e1 : expr) (op : binop) (e2 : expr) =
      let v1, s1 = eval_expr state e1 in
