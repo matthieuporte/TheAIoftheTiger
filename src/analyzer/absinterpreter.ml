@@ -132,7 +132,15 @@ module Make (D : D) = struct
      final state, and the value of the last expression. *)
   and analyze_seq (state : State.t) (exprs : Ast.expr list) :
       (State.t, Value.t) Annotast.expr list * State.t * Value.t =
-     Format.asprintf "%s" __FUNCTION__ |> Utils.niy
+    match exprs with
+      | [] -> failwith "eval_seq: empty list"
+      | [ e ] ->
+         let new_annot = analyze_expr state e in
+         [ new_annot ], new_annot.e_state, new_annot.e_value
+      | e :: tail ->
+          let new_annot = analyze_expr state e in
+          let new_list,s,v = analyze_seq new_annot.e_state tail in
+          [new_annot] @ new_list, s, v
 
   (* Step 2: Analyze an assignment.
      Hint: use write_value *)
