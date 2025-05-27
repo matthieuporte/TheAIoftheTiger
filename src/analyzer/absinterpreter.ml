@@ -157,12 +157,11 @@ module Make (D : D) = struct
   and analyze_array_init loc (state : State.t) (id : string) (size : expr)
       (content : expr) : (State.t, Value.t) Annotast.expr =
     let size_annot = analyze_expr state size in
-    let size_int = Value.cast_int size.loc size_annot.e_value and
-        content_annot = analyze_expr size_annot.e_state content in
-    let arr = Value.Array (Array.make size_int content_annot.e_value) in
-    let new_state = State.add_value id arr content_annot.e_state in
+    let content_annot = analyze_expr size_annot.e_state content in
+    let (size_int: Absint.t) = Value.cast_int size_annot.e_loc size_annot.e_value in
+    let abs_arr = Value.array_make size_int content_annot.e_value in
     let node = Annotast.AArrayInit (id, size_annot, content_annot) in
-    build_expr loc node new_state arr
+    Annotast.build_expr loc node content_annot.e_state abs_arr
 
   (* Step 2: Analyze a function call. Arguments are evaluated from left
      to right *)
