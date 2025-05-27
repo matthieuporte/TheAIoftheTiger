@@ -167,7 +167,13 @@ module Make (D : D) = struct
      to right *)
   and analyze_funcall (state : State.t) loc (name : string) (args : expr list) :
       (State.t, Value.t) Annotast.expr =
-     Format.asprintf "%s" __FUNCTION__ |> Utils.niy
+    let open Annotast in
+    let annotated_expr_list , (last_state: State.t), (value: Value.t) =
+      analyze_seq state args in
+    (* name and annotated_expr list *)
+    let node = AFuncall (name, annotated_expr_list) in
+    build_expr loc node last_state value
+     (* Format.asprintf "%s" __FUNCTION__ |> Utils.niy *)
 
   (* Step 2: Analyze a let-binding *)
   and analyze_let loc state chunks body =
