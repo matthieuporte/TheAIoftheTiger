@@ -105,7 +105,17 @@ module Make (D : D) = struct
   (* Step 2: Analyze a binary operation *)
   and analyze_binop (loc : location) (state : State.t) (left : Ast.expr)
       (right : Ast.expr) (op : Ast.binop) =
-     Format.asprintf "%s not implemented" __FUNCTION__ |> Utils.niy
+    (* annotate recursively left and right children *)
+    let left_annot = analyze_expr state left in
+    let right_annot = analyze_expr left_annot.e_state right in
+    (* Cast to Absint *)
+    let left_int = Value.cast_int loc left_annot.e_value and
+        right_int = Value.cast_int loc right_annot.e_value in
+    (* Computes the result and get an Absint *)
+    let value = Value.Int ((binop_to_fun op) left_int right_int) in
+    (* Build the annotated node of the AST *)
+    let node = Annotast.ABinop (left_annot, op , right_annot) in
+    Annotast.build_expr loc node right_annot.e_state value
 
   (* Step 2: Analyze a comparison *)
   and analyze_relop (loc : location) (state : State.t) (left : Ast.expr)
