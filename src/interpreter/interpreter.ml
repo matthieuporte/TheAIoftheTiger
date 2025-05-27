@@ -63,8 +63,8 @@ let rec eval_expr (state : State.t) (e : expr) : Value.t * State.t =
      v, write_lvalue s lv v
   | IfThenElse (e1, e2, e3) -> eval_if state e1 e2 e3
   | While (e1, e2) -> eval_while state e1 e2
-  | ArrayInit ((id: string), (index_expr: expr), (value: expr)) ->
-     let index_value, s1 = eval_expr state index_expr in
+  | ArrayInit ((id: string), (size: expr), (value: expr)) ->
+     let index_value, s1 = eval_expr state size in
      let v, s2 = eval_expr s1 value and
          i = Value.cast_int e.loc index_value in
      let arr = Value.Array (Array.make i v) in
@@ -83,17 +83,12 @@ and write_lvalue (state : State.t) (lv : lvalue) (value : Value.t) : State.t =
   match lv.payload with
   | Var id -> State.update_value id value state
   | Array (lv, e) -> (* state *)
-     let (index_value : Value.t), s = eval_expr state e and
-         id = get_final_id lv in
-     let arr_value : Value.t = State.find_value id state in
-     let index = Value.cast_int lv.loc index_value and
-         arr = Value.cast_array lv.loc arr_value in
-    let _ = Value.array_set arr index value in s
-
-and get_final_id (lv: lvalue) : string =
-  match lv.payload with
-  | Var id -> id
-  | Array (lv, e) -> get_final_id lv
+     let (index_value : Value.t), s = eval_expr state e in
+     let index = Value.cast_int lv.loc index_value in
+     let arr_value, s2 = read_lvalue s lv in
+     let arr = Value.cast_array lv.loc arr_value in
+     let new_arr = Value.array_set arr index value in
+     write_lvalue s2 lv new_arr
 
 (* Resolves an lvalue to the value it refers to, returning the value
    and the updated state.  This may involve evaluating subexpressions
@@ -103,18 +98,13 @@ and get_final_id (lv: lvalue) : string =
 and read_lvalue (state : State.t) (lv : lvalue) : Value.t * State.t =
   match lv.payload with
   | Var id -> (State.find_value id state, state)
-  | Array (lv, e) -> (* failwith "not yet buddy" *)
-     let index_value, s = eval_expr state e and
-         id = get_final_id lv in
-     let arr_value : Value.t = State.find_value id state in
-     let index = Value.cast_int lv.loc index_value and
-         arr = Value.cast_array lv.loc arr_value in
-     let v = Value.array_get arr index in
-     (* Check if it is still an array *)
-     (match v with
-        | Value.Array  -> read_lvalue s lv
-        | _ -> v, s
-     )
+  | Array (lv,e) ->
+     let arr_value, s = read_lvalue state lv in
+     let (index_value : Value.t), s2 = eval_expr state e in
+     let index = Value.cast_int lv.loc index_value in
+     let arr = Value.cast_array lv.loc arr_value in
+     let result_value = Value.array_get arr index in
+     result_value, s2
 
 
 and eval_seq (state: State.t) (seq_expr: expr list) : Value.t * State.t =
@@ -141,9 +131,6 @@ and eval_chunk (state : State.t) (c : chunk) : State.t =
      let v, s = eval_expr state e in
      let new_state = State.add_value id v s in
      new_state
-
-  (* complete the function and keep this wildcard card until it becomes redundant *)
-  (* | _ -> Format.asprintf "(%s)" __FUNCTION__ |> Utils.niy *)
 
 and eval_if (state : State.t) (e1 : expr) (e2 : expr) (e3 : expr option) =
      let v,s = eval_expr state e1 in
