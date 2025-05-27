@@ -146,13 +146,23 @@ module Make (D : D) = struct
      Hint: use write_value *)
   and analyze_assign loc (state : State.t) (left : Ast.lvalue)
       (right : Ast.expr) : (State.t, Value.t) Annotast.expr =
-     Format.asprintf "%s" __FUNCTION__ |> Utils.niy
+     let open Annotast in 
+     let right_annot = analyze_expr state right in
+     let left_value = write_lvalue right_annot.e_state left right_annot.e_value in
+     let node = AAssign (left_value, right_annot) in
+     build_expr loc node left_value.l_state right_annot.e_value
 
   (* Step 2: Analyze an array initialization by evaluating the size and
      content expressions. Returns the annotated expression and result. *)
   and analyze_array_init loc (state : State.t) (id : string) (size : expr)
       (content : expr) : (State.t, Value.t) Annotast.expr =
-     Format.asprintf "%s" __FUNCTION__ |> Utils.niy
+    let size_annot = analyze_expr state size in
+    let size_int = Value.cast_int size.loc size_annot.e_value and
+        content_annot = analyze_expr size_annot.e_state content in
+    let arr = Value.Array (Array.make size_int content_annot.e_value) in
+    let new_state = State.add_value id arr content_annot.e_state in
+    let node = Annotast.AArrayInit (id, size_annot, content_annot) in
+    build_expr loc node new_state arr
 
   (* Step 2: Analyze a function call. Arguments are evaluated from left
      to right *)
