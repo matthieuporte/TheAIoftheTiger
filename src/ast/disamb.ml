@@ -83,16 +83,16 @@ let insert_token_before_identifier text token =
   process 0;
   Buffer.contents buffer
 
-let process_file ?(rewrite=false) f =
+let process_file ?(rewrite = false) f =
   let input_file = f in
   let ic = open_in input_file in
   let content = really_input_string ic (in_channel_length ic) in
   close_in ic;
   let modified_content = insert_token_before_identifier content "_" in
-  if rewrite then
-  (let f = Filename.basename f in
-  let output_file = "deamb_" ^ f in
-  let oc = open_out output_file in
-  output_string oc modified_content;
-  close_out oc);
+  if rewrite then (
+    let f = Filename.basename f in
+    let output_file = "deamb_" ^ f in
+    let oc = open_out output_file in
+    output_string oc modified_content;
+    close_out oc);
   modified_content
