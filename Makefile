@@ -1,3 +1,5 @@
+# Frontend to dune.
+
 .PHONY: default build install uninstall test clean
 
 default: build
@@ -8,9 +10,9 @@ build:
 test:
 	@dune exec ./src/concrete/tests_concrete.exe
 #	uncomment when working on step 2
-#	@dune exec ./src/abstract/tests_abstract.exe -- --const
+	@dune exec ./src/abstract/tests_abstract.exe -- --const
 #	uncomment when working on step 4
-#	@dune exec ./src/abstract/tests_abstract.exe -- --interval
+	@dune exec ./src/abstract/tests_abstract.exe -- --interval
 
 interpretertest:
 	@dune exec ./src/concrete/tests_concrete.exe -- --verbose
@@ -21,6 +23,18 @@ consttest:
 intervaltest:
 	@dune exec ./src/abstract/tests_abstract.exe -- --verbose --interval
 
+pdf:
+	@find . -type f -name "*.tig" | sort | while read -r file; do \
+		echo "Processing file: $$file"; \
+		./src/abstract/tiger_abstract.exe --domain interval --pdf "$$file"; \
+	done
+
+install:
+	dune install
+
+uninstall:
+	dune uninstall
+
 clean:
 	dune clean
 	rm -f *.pdf
@@ -29,6 +43,7 @@ clean:
 ############################################################################
 # If you dont have dune, you can comment the lines above and uncomment     #
 # the lines below. It's a temporary not ideal fix. You should install dune.#
+# It will only work for the step 1 of the project. You should install dune.#
 ############################################################################
 
 # OCAMLOPT = ocamlopt
