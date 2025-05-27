@@ -109,12 +109,12 @@ module Make (D : D) = struct
     let left_annot = analyze_expr state left in
     let right_annot = analyze_expr left_annot.e_state right in
     (* Cast to Absint *)
-    let left_int = Value.cast_int loc left_annot.e_value and
-        right_int = Value.cast_int loc right_annot.e_value in
+    let left_int = Value.cast_int loc left_annot.e_value
+    and right_int = Value.cast_int loc right_annot.e_value in
     (* Computes the result and get an Absint *)
     let value = Value.Int ((binop_to_fun op) left_int right_int) in
     (* Build the annotated node of the AST *)
-    let node = Annotast.ABinop (left_annot, op , right_annot) in
+    let node = Annotast.ABinop (left_annot, op, right_annot) in
     Annotast.build_expr loc node right_annot.e_state value
 
   (* Step 2: Analyze a comparison *)
@@ -124,7 +124,7 @@ module Make (D : D) = struct
     let left_annot = analyze_expr state left in
     let right_annot = analyze_expr left_annot.e_state right in
     let value = (relop_to_fun op) left_annot.e_value right_annot.e_value in
-    let node = ARelop (left_annot, op, right_annot) in 
+    let node = ARelop (left_annot, op, right_annot) in
     build_expr loc node right_annot.e_state (Value.Int value)
 
   (* Step 2: Analyzes a sequence of expressions in order, threading state
@@ -133,24 +133,26 @@ module Make (D : D) = struct
   and analyze_seq (state : State.t) (exprs : Ast.expr list) :
       (State.t, Value.t) Annotast.expr list * State.t * Value.t =
     match exprs with
-      | [] -> failwith "eval_seq: empty list"
-      | [ e ] ->
-         let new_annot = analyze_expr state e in
-         [ new_annot ], new_annot.e_state, new_annot.e_value
-      | e :: tail ->
-          let new_annot = analyze_expr state e in
-          let new_list,s,v = analyze_seq new_annot.e_state tail in
-          [new_annot] @ new_list, s, v
+    | [] -> failwith "eval_seq: empty list"
+    | [ e ] ->
+        let new_annot = analyze_expr state e in
+        ([ new_annot ], new_annot.e_state, new_annot.e_value)
+    | e :: tail ->
+        let new_annot = analyze_expr state e in
+        let new_list, s, v = analyze_seq new_annot.e_state tail in
+        ([ new_annot ] @ new_list, s, v)
 
   (* Step 2: Analyze an assignment.
      Hint: use write_value *)
   and analyze_assign loc (state : State.t) (left : Ast.lvalue)
       (right : Ast.expr) : (State.t, Value.t) Annotast.expr =
-     let open Annotast in 
-     let right_annot = analyze_expr state right in
-     let left_value = write_lvalue right_annot.e_state left right_annot.e_value in
-     let node = AAssign (left_value, right_annot) in
-     build_expr loc node left_value.l_state right_annot.e_value
+    let open Annotast in
+    let right_annot = analyze_expr state right in
+    let left_value =
+      write_lvalue right_annot.e_state left right_annot.e_value
+    in
+    let node = AAssign (left_value, right_annot) in
+    build_expr loc node left_value.l_state right_annot.e_value
 
   (* Step 2: Analyze an array initialization by evaluating the size and
      content expressions. Returns the annotated expression and result. *)
@@ -158,7 +160,9 @@ module Make (D : D) = struct
       (content : expr) : (State.t, Value.t) Annotast.expr =
     let size_annot = analyze_expr state size in
     let content_annot = analyze_expr size_annot.e_state content in
-    let (size_int: Absint.t) = Value.cast_int size_annot.e_loc size_annot.e_value in
+    let (size_int : Absint.t) =
+      Value.cast_int size_annot.e_loc size_annot.e_value
+    in
     let abs_arr = Value.array_make size_int content_annot.e_value in
     let node = Annotast.AArrayInit (id, size_annot, content_annot) in
     Annotast.build_expr loc node content_annot.e_state abs_arr
@@ -168,22 +172,28 @@ module Make (D : D) = struct
   and analyze_funcall (state : State.t) loc (name : string) (args : expr list) :
       (State.t, Value.t) Annotast.expr =
     let open Annotast in
-    let annotated_expr_list , (last_state: State.t), (value: Value.t) =
-      analyze_seq state args in
+    let annotated_expr_list, (last_state : State.t), (value : Value.t) =
+      analyze_seq state args
+    in
     (* name and annotated_expr list *)
     let node = AFuncall (name, annotated_expr_list) in
     build_expr loc node last_state value
-     (* Format.asprintf "%s" __FUNCTION__ |> Utils.niy *)
+  (* Format.asprintf "%s" __FUNCTION__ |> Utils.niy *)
 
   (* Step 2: Analyze a let-binding *)
   and analyze_let loc state chunks body =
-     Format.asprintf "%s" __FUNCTION__ |> Utils.niy
+    let open Annotast in
+    let chunks_annot, new_state = analyze_chunks state chunks in
+    let body_annot, s, v = analyze_seq new_state body in
+    let node = ALet (chunks_annot, body_annot) in
+    build_expr loc node s v
+  (* Format.asprintf "%s" __FUNCTION__ |> Utils.niy *)
 
   (* Step 2: Analyze a boolean operation
      - Hint : use State.join *)
   and analyze_boolop (loc : location) (state : State.t) (left : Ast.expr)
       (right : Ast.expr) (op : Ast.boolop) =
-     Format.asprintf "%s not implemented" __FUNCTION__ |> Utils.niy
+    Format.asprintf "%s not implemented" __FUNCTION__ |> Utils.niy
 
   (* Step 3: Analyze an if-expression by evaluating the condition and both
      branches. Joins the resulting states and values.
@@ -195,8 +205,8 @@ module Make (D : D) = struct
      - Hint: use filter *)
   and analyze_if (state : State.t) (loc : location) (cond : expr) (tbr : expr)
       (fbr : expr option) : (State.t, Value.t) Annotast.expr =
-     (* replace with your own code *)
-     Format.asprintf "%s" __FUNCTION__ |> Utils.niy
+    (* replace with your own code *)
+    Format.asprintf "%s" __FUNCTION__ |> Utils.niy
 
   (* Step 3: Analyze a while loop by evaluating its condition and body
      repeatedly until the condition can be proven to be statically
@@ -210,8 +220,8 @@ module Make (D : D) = struct
      final state with the condition being false to model loop exit. *)
   and analyze_while (state : State.t) (loc : location) (cond : expr)
       (body : expr) : (State.t, Value.t) Annotast.expr =
-     (* replace with your own code *)
-     Format.asprintf "%s" __FUNCTION__ |> Utils.niy
+    (* replace with your own code *)
+    Format.asprintf "%s" __FUNCTION__ |> Utils.niy
 
   (* Evaluates an lvalue to read its value.
      - If the lvalue is a variable, retrieves its value from the current state.
@@ -224,8 +234,8 @@ module Make (D : D) = struct
         let value = State.find_value id state in
         build_lval lv.loc (AVar id) state value
     | Array (lv', idx) ->
-     (* replace with your own code *)
-     Format.asprintf "%s" __FUNCTION__ |> Utils.niy
+        (* replace with your own code *)
+        Format.asprintf "%s" __FUNCTION__ |> Utils.niy
 
   (* Evaluates an lvalue to perform a write operation.
      - If the lvalue is a variable, updates its value in the current state.
@@ -240,8 +250,8 @@ module Make (D : D) = struct
         let state = State.update_value id v state in
         build_lval lv.loc (AVar id) state Value.Void
     | Array (lv', idx) ->
-     (* replace with your own code *)
-     Format.asprintf "%s" __FUNCTION__ |> Utils.niy
+        (* replace with your own code *)
+        Format.asprintf "%s" __FUNCTION__ |> Utils.niy
 
   (* Analyze and annotate each chunk in the chunk list. Analyzing a
      chunk may modify the state, so the updated state must be
