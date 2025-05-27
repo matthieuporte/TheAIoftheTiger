@@ -37,40 +37,38 @@ let rec eval_expr (state : State.t) (e : expr) : Value.t * State.t =
       (func args, state)
   | String s -> (String s, state)
   | Let (chunks, body) ->
-     let new_scope = State.enter_scope(state) in
-     let new_state = eval_chunks new_scope chunks in 
-     let v, s = eval_seq new_state body in
-     let old_scope = State.exit_scope(s) in
-     v, old_scope
+      let new_scope = State.enter_scope state in
+      let new_state = eval_chunks new_scope chunks in
+      let v, s = eval_seq new_state body in
+      let old_scope = State.exit_scope s in
+      (v, old_scope)
   | Lval lv -> read_lvalue state lv
   | Binop (e1, op, e2) -> eval_binop state e1 op e2
   | Relop (e1, op, e2) ->
-     let v1,s1 = eval_expr state e1 in
-     let v2,s2 = eval_expr s1 e2 in
-     let r = relop_to_fun op v1 v2 in
-     (Int r, s2)
-  | Boolop (e1, op, e2) ->
-     let v,s = eval_expr state e1 in
-     let int1 = Value.cast_int e1.loc v in
-     (match op, int1 with
-        | And, 0 -> v,s
-        | And, _ -> eval_expr s e2
-        | Or, 0 -> eval_expr s e2
-        | Or, _ -> v,s)
+      let v1, s1 = eval_expr state e1 in
+      let v2, s2 = eval_expr s1 e2 in
+      let r = relop_to_fun op v1 v2 in
+      (Int r, s2)
+  | Boolop (e1, op, e2) -> (
+      let v, s = eval_expr state e1 in
+      let int1 = Value.cast_int e1.loc v in
+      match (op, int1) with
+      | And, 0 -> (v, s)
+      | And, _ -> eval_expr s e2
+      | Or, 0 -> eval_expr s e2
+      | Or, _ -> (v, s))
   | Seq body -> eval_seq state body
   | Assign (lv, e) ->
-     let v,s = eval_expr state e in
-     v, write_lvalue s lv v
+      let v, s = eval_expr state e in
+      (v, write_lvalue s lv v)
   | IfThenElse (e1, e2, e3) -> eval_if state e1 e2 e3
   | While (e1, e2) -> eval_while state e1 e2
-  | ArrayInit ((id: string), (size: expr), (value: expr)) ->
-     let index_value, s1 = eval_expr state size in
-     let v, s2 = eval_expr s1 value and
-         i = Value.cast_int e.loc index_value in
-     let arr = Value.Array (Array.make i v) in
-     let new_state = State.add_value id arr s2 in
-     arr, new_state
-
+  | ArrayInit ((id : string), (size : expr), (value : expr)) ->
+      let index_value, s1 = eval_expr state size in
+      let v, s2 = eval_expr s1 value and i = Value.cast_int e.loc index_value in
+      let arr = Value.Array (Array.make i v) in
+      let new_state = State.add_value id arr s2 in
+      (arr, new_state)
 
 (* Writes a value to the location referred to by the given lvalue,
    returning the updated state.  This may involve evaluating
@@ -82,13 +80,14 @@ let rec eval_expr (state : State.t) (e : expr) : Value.t * State.t =
 and write_lvalue (state : State.t) (lv : lvalue) (value : Value.t) : State.t =
   match lv.payload with
   | Var id -> State.update_value id value state
-  | Array (lv, e) -> (* state *)
-     let (index_value : Value.t), s = eval_expr state e in
-     let index = Value.cast_int lv.loc index_value in
-     let arr_value, s2 = read_lvalue s lv in
-     let arr = Value.cast_array lv.loc arr_value in
-     let new_arr = Value.array_set arr index value in
-     write_lvalue s2 lv new_arr
+  | Array (lv, e) ->
+      (* state *)
+      let (index_value : Value.t), s = eval_expr state e in
+      let index = Value.cast_int lv.loc index_value in
+      let arr_value, s2 = read_lvalue s lv in
+      let arr = Value.cast_array lv.loc arr_value in
+      let new_arr = Value.array_set arr index value in
+      write_lvalue s2 lv new_arr
 
 (* Resolves an lvalue to the value it refers to, returning the value
    and the updated state.  This may involve evaluating subexpressions
@@ -98,24 +97,23 @@ and write_lvalue (state : State.t) (lv : lvalue) (value : Value.t) : State.t =
 and read_lvalue (state : State.t) (lv : lvalue) : Value.t * State.t =
   match lv.payload with
   | Var id -> (State.find_value id state, state)
-  | Array (lv,e) ->
-     let arr_value, s = read_lvalue state lv in
-     let (index_value : Value.t), s2 = eval_expr state e in
-     let index = Value.cast_int lv.loc index_value in
-     let arr = Value.cast_array lv.loc arr_value in
-     let result_value = Value.array_get arr index in
-     result_value, s2
+  | Array (lv, e) ->
+      let arr_value, s = read_lvalue state lv in
+      let (index_value : Value.t), s2 = eval_expr state e in
+      let index = Value.cast_int lv.loc index_value in
+      let arr = Value.cast_array lv.loc arr_value in
+      let result_value = Value.array_get arr index in
+      (result_value, s2)
 
-
-and eval_seq (state: State.t) (seq_expr: expr list) : Value.t * State.t =
+and eval_seq (state : State.t) (seq_expr : expr list) : Value.t * State.t =
   match seq_expr with
-   | [] -> failwith "eval_seq: empty list"
-   | [ e ] -> eval_expr state e
-   | e :: tail ->
+  | [] -> failwith "eval_seq: empty list"
+  | [ e ] -> eval_expr state e
+  | e :: tail ->
       (* let _ = Printf.printf "e\n" in *)
       let _, new_state = eval_expr state e in
       eval_seq new_state tail
-  (* List.fold_left (fun (_, s) e  -> eval_expr s e) (Void, state) seq_expr  *)
+(* List.fold_left (fun (_, s) e  -> eval_expr s e) (Void, state) seq_expr  *)
 
 and eval_chunks (state : State.t) (chunks : chunk list) : State.t =
   List.fold_left eval_chunk state chunks
@@ -124,43 +122,43 @@ and eval_chunks (state : State.t) (chunks : chunk list) : State.t =
     into account, but the result is dicarded *)
 and eval_chunk (state : State.t) (c : chunk) : State.t =
   match c.payload with
-  | Exp e -> let _, s = eval_expr state e in s
+  | Exp e ->
+      let _, s = eval_expr state e in
+      s
   (* We assume that the program is correctly typed *)
   | Typedec ((name : string), (t : typ)) -> state
   | Vardec (id, t, e) ->
-     let v, s = eval_expr state e in
-     let new_state = State.add_value id v s in
-     new_state
+      let v, s = eval_expr state e in
+      let new_state = State.add_value id v s in
+      new_state
 
 and eval_if (state : State.t) (e1 : expr) (e2 : expr) (e3 : expr option) =
-     let v,s = eval_expr state e1 in
-     let int1 = Value.cast_int e1.loc v in
-     (match int1, e3 with
-     | 0, None -> v,s 
-     | 0 ,_ -> eval_expr s (Option.get e3)
-     | _, _ -> eval_expr s e2)
+  let v, s = eval_expr state e1 in
+  let int1 = Value.cast_int e1.loc v in
+  match (int1, e3) with
+  | 0, None -> (v, s)
+  | 0, _ -> eval_expr s (Option.get e3)
+  | _, _ -> eval_expr s e2
 
 and eval_while (state : State.t) (e1 : expr) (e2 : expr) =
-     let v,s = eval_expr state e1 in
-     let int1 = Value.cast_int e1.loc v in
-     if int1 <> 0 then (* true *)
-       let v2, s2 = eval_expr s e2 in
-       eval_while s2 e1 e2
-     else (* false *)
-       v,s
+  let v, s = eval_expr state e1 in
+  let int1 = Value.cast_int e1.loc v in
+  if int1 <> 0 then (* true *)
+    let v2, s2 = eval_expr s e2 in
+    eval_while s2 e1 e2
+  else (* false *)
+    (v, s)
 
 and eval_binop (state : State.t) (e1 : expr) (op : binop) (e2 : expr) =
-     let v1, s1 = eval_expr state e1 in
-     let v2, s2 = eval_expr s1 e2 in
-     let int1 = Value.cast_int e1.loc v1
-     and int2 = Value.cast_int e2.loc v2 in
-     (match op with
-     | Add -> (Int (int1 + int2), s2)
-     | Sub -> (Int (int1 - int2), s2)
-     | Mul -> (Int (int1 * int2), s2)
-      (* Maybe div by 0 problems *)
-     | Div -> (Int (int1 / int2), s2)
-     )
+  let v1, s1 = eval_expr state e1 in
+  let v2, s2 = eval_expr s1 e2 in
+  let int1 = Value.cast_int e1.loc v1 and int2 = Value.cast_int e2.loc v2 in
+  match op with
+  | Add -> (Int (int1 + int2), s2)
+  | Sub -> (Int (int1 - int2), s2)
+  | Mul -> (Int (int1 * int2), s2)
+  (* Maybe div by 0 problems *)
+  | Div -> (Int (int1 / int2), s2)
 
 open Value
 
@@ -177,18 +175,17 @@ let print out = function
   | _ -> failwith "print: type error"
 
 let concat = function
-     (* Concatenates two strings *)
-  | [ String a; String b ] ->
-    String (a ^ b)
+  (* Concatenates two strings *)
+  | [ String a; String b ] -> String (a ^ b)
   | _ -> failwith "concat: type error"
 
 let range = function
-   (* returns a value between low and high *)
+  (* returns a value between low and high *)
   | [ Int low; Int high ] ->
-     Random.self_init();
-     (* +1 because upper value is not included *)
-     let r = Random.int (high - low + 1) in
-     Int (r + low)
+      Random.self_init ();
+      (* +1 because upper value is not included *)
+      let r = Random.int (high - low + 1) in
+      Int (r + low)
   | _ -> failwith "range: type error"
 
 (* Evaluates a Tiger program with an optional output formatter.

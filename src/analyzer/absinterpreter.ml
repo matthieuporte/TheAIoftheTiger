@@ -167,6 +167,15 @@ module Make (D : D) = struct
     let node = Annotast.AArrayInit (id, size_annot, content_annot) in
     Annotast.build_expr loc node content_annot.e_state abs_arr
 
+  and annot_list_to_value_list (a : (State.t, Value.t) Annotast.expr list) :
+      Value.t list =
+    match a with
+    | [] -> failwith "eval_seq: empty list"
+    | [ e ] -> [ e.e_value ]
+    | e :: tail ->
+        let new_list = annot_list_to_value_list tail in
+        [ e.e_value ] @ new_list
+
   (* Step 2: Analyze a function call. Arguments are evaluated from left
      to right *)
   and analyze_funcall (state : State.t) loc (name : string) (args : expr list) :
@@ -175,9 +184,12 @@ module Make (D : D) = struct
     let annotated_expr_list, (last_state : State.t), (value : Value.t) =
       analyze_seq state args
     in
+    let value_list = annot_list_to_value_list annotated_expr_list in
     (* name and annotated_expr list *)
+    let func = State.find_fun name last_state in
+    let return_value = func value_list in
     let node = AFuncall (name, annotated_expr_list) in
-    build_expr loc node last_state value
+    build_expr loc node last_state return_value
   (* Format.asprintf "%s" __FUNCTION__ |> Utils.niy *)
 
   (* Step 2: Analyze a let-binding *)
@@ -193,7 +205,19 @@ module Make (D : D) = struct
      - Hint : use State.join *)
   and analyze_boolop (loc : location) (state : State.t) (left : Ast.expr)
       (right : Ast.expr) (op : Ast.boolop) =
-    Format.asprintf "%s not implemented" __FUNCTION__ |> Utils.niy
+    let open Annotast in
+    let left_annot = analyze_expr state left in
+    let left_int = Value.cast_int loc left_annot.e_value in
+    let right_annot = analyze_expr left_annot.e_state right in
+    let right_int = Value.cast_int loc right_annot.e_value in
+    let value = Value.Int ((boolop_to_fun op) left_int right_int) in
+    let node = ABoolop (left_annot, op, right_annot) in
+    (* lazy evaluation, _ represents False or Unknown *)
+    match (op, Absint.truth left_int) with
+    | And, True -> build_expr loc node right_annot.e_state value
+    | And, _ -> build_expr loc node left_annot.e_state value
+    | Or, True -> build_expr loc node left_annot.e_state value
+    | Or, _ -> build_expr loc node right_annot.e_state value
 
   (* Step 3: Analyze an if-expression by evaluating the condition and both
      branches. Joins the resulting states and values.
