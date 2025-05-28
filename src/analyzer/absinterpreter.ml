@@ -229,8 +229,31 @@ module Make (D : D) = struct
      - Hint: use filter *)
   and analyze_if (state : State.t) (loc : location) (cond : expr) (tbr : expr)
       (fbr : expr option) : (State.t, Value.t) Annotast.expr =
-    (* replace with your own code *)
-    Format.asprintf "%s" __FUNCTION__ |> Utils.niy
+    let open Annotast in
+    let cond_annot = analyze_expr state cond in
+    let truth = Absint.truth (Value.cast_int loc cond_annot.e_value) in
+    (* let (tbr_annot : (State.t, Value.t) Annotast.expr), *)
+    (*     (fbr_annot : (State.t, Value.t) Annotast.expr) =  *)
+      
+    (match truth with
+    | True ->
+       let tbr_annot = analyze_expr cond_annot.e_state tbr in
+                     k, Value.Unreachable
+    | False ->
+       Value.Unreachable, analyze_expr cond_annot.e_state fbr
+    | Unknown ->
+    ) in 
+       (* let tbr_annot_in = analyze_expr cond_annot.e_state tbr in *)
+       (* let (unreach: Annotast.expr) = Value.Unreachable in *)
+       (* let node = AIfThenElse (cond_annot, tbr_annot, Option.Some Value.Unreachable) in *)
+       (* build_expr loc node tbr_annot.e_state tbr_annot.e_value *)
+
+                              
+    
+
+
+    (* (\* replace with your own code *\) *)
+    (* Format.asprintf "%s" __FUNCTION__ |> Utils.niy *)
 
   (* Step 3: Analyze a while loop by evaluating its condition and body
      repeatedly until the condition can be proven to be statically
