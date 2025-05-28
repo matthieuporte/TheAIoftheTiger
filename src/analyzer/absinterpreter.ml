@@ -292,8 +292,13 @@ module Make (D : D) = struct
         let value = State.find_value id state in
         build_lval lv.loc (AVar id) state value
     | Array (lv', idx) ->
-        (* replace with your own code *)
-        Format.asprintf "%s" __FUNCTION__ |> Utils.niy
+        let annot_lvalue = read_lvalue state lv' in
+        let arr = Value.cast_array lv'.loc annot_lvalue.l_value in
+        let index_annot = analyze_expr state idx in
+        let index = Value.cast_int lv'.loc index_annot.e_value in
+        let result_value = Value.array_get arr index in
+        let node = AArray (annot_lvalue, index_annot) in
+        build_lval lv'.loc node index_annot.e_state result_value
 
   (* Evaluates an lvalue to perform a write operation.
      - If the lvalue is a variable, updates its value in the current state.
@@ -308,8 +313,12 @@ module Make (D : D) = struct
         let state = State.update_value id v state in
         build_lval lv.loc (AVar id) state Value.Void
     | Array (lv', idx) ->
-        (* replace with your own code *)
-        Format.asprintf "%s" __FUNCTION__ |> Utils.niy
+        let annot_lvalue = read_lvalue state lv' in
+        let arr = Value.cast_array lv'.loc annot_lvalue.l_value in
+        let index_annot = analyze_expr annot_lvalue.l_state idx in
+        let index = Value.cast_int lv'.loc index_annot.e_value in
+        let result_value = Value.array_set arr index v in
+        write_lvalue index_annot.e_state lv' result_value
 
   (* Analyze and annotate each chunk in the chunk list. Analyzing a
      chunk may modify the state, so the updated state must be
