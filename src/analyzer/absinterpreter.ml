@@ -251,9 +251,6 @@ module Make (D : D) = struct
     in
     build_expr loc node joined_state joined_value
 
-  (* (\* replace with your own code *\) *)
-  (* Format.asprintf "%s" __FUNCTION__ |> Utils.niy *)
-
   (* Step 3: Analyze a while loop by evaluating its condition and body
      repeatedly until the condition can be proven to be statically
      false. Raises Not_Implement_Yet if the number of iteration
@@ -264,10 +261,25 @@ module Make (D : D) = struct
      Repeatedly analyzes the condition and body under the filtered true state,
      joins intermediate states to approximate the loop effect, and filters the
      final state with the condition being false to model loop exit. *)
+  and hat_while (count : int) (state : State.t) (loc : location) (cond : expr)
+      (body : expr) : (State.t, Value.t) Annotast.expr =
+    let open Annotast in
+    match count with
+    | 5 -> Utils.niy "Max iter reached"
+    (* | Utils.max_iter -> Utils.niy "Max iter reached" *)
+    | _ -> (
+        let cond_annot = analyze_expr state cond in
+        let body_annot = analyze_expr cond_annot.e_state body in
+        let truth = Absint.truth (Value.cast_int loc cond_annot.e_value) in
+        match truth with
+        | False ->
+            let node = AWhile (cond_annot, body_annot) in
+            build_expr loc node body_annot.e_state body_annot.e_value
+        | _ -> hat_while (count + 1) body_annot.e_state loc cond body)
+
   and analyze_while (state : State.t) (loc : location) (cond : expr)
       (body : expr) : (State.t, Value.t) Annotast.expr =
-    (* replace with your own code *)
-    Format.asprintf "%s" __FUNCTION__ |> Utils.niy
+    hat_while 0 state loc cond body
 
   (* Evaluates an lvalue to read its value.
      - If the lvalue is a variable, retrieves its value from the current state.
