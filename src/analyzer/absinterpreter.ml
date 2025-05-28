@@ -232,28 +232,27 @@ module Make (D : D) = struct
     let open Annotast in
     let cond_annot = analyze_expr state cond in
     let truth = Absint.truth (Value.cast_int loc cond_annot.e_value) in
-    (* let (tbr_annot : (State.t, Value.t) Annotast.expr), *)
-    (*     (fbr_annot : (State.t, Value.t) Annotast.expr) =  *)
-      
-    (match truth with
-    | True ->
-       let tbr_annot = analyze_expr cond_annot.e_state tbr in
-                     k, Value.Unreachable
-    | False ->
-       Value.Unreachable, analyze_expr cond_annot.e_state fbr
-    | Unknown ->
-    ) in 
-       (* let tbr_annot_in = analyze_expr cond_annot.e_state tbr in *)
-       (* let (unreach: Annotast.expr) = Value.Unreachable in *)
-       (* let node = AIfThenElse (cond_annot, tbr_annot, Option.Some Value.Unreachable) in *)
-       (* build_expr loc node tbr_annot.e_state tbr_annot.e_value *)
+    let tbr_annot = analyze_expr cond_annot.e_state tbr in
+    (* Return None if none, an Annotast expr otherwise *)
+    let (fbr_annot : (State.t, Value.t) Annotast.expr option) =
+      (* we use the state from cond_annot because we cannot go in both branhces *)
+      (Option.map (fun e -> analyze_expr cond_annot.e_state e)) fbr
+    in
+    let node = AIfThenElse (cond_annot, tbr_annot, fbr_annot) in
+    let joined_state, joined_value =
+      match (fbr_annot, truth) with
+      | None, False -> (cond_annot.e_state, cond_annot.e_value)
+      | None, _ -> (tbr_annot.e_state, tbr_annot.e_value)
+      | Some e, True -> (tbr_annot.e_state, tbr_annot.e_value)
+      | Some e, False -> (e.e_state, e.e_value)
+      | Some e, Unknown ->
+          ( State.join tbr_annot.e_state e.e_state,
+            Value.join tbr_annot.e_value e.e_value )
+    in
+    build_expr loc node joined_state joined_value
 
-                              
-    
-
-
-    (* (\* replace with your own code *\) *)
-    (* Format.asprintf "%s" __FUNCTION__ |> Utils.niy *)
+  (* (\* replace with your own code *\) *)
+  (* Format.asprintf "%s" __FUNCTION__ |> Utils.niy *)
 
   (* Step 3: Analyze a while loop by evaluating its condition and body
      repeatedly until the condition can be proven to be statically
