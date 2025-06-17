@@ -33,7 +33,20 @@ let join i1 i2 =
       Inf low
   | _ -> Top
 
-let widen _ _ = Top
+let widen i1 i2 =
+  match (i1, i2) with
+  | Range (l1, h1), Range (l2, h2) -> (
+      let low = if l1 = l2 then 1 else 0 and high = if h1 = h2 then 1 else 0 in
+      match (low, high) with
+      | 1, 1 -> Range (l1, h1)
+      | 1, 0 -> Inf l1
+      | 0, 1 -> Minf h1
+      | _, _ -> Top)
+  | Range (l1, h1), Inf low | Inf low, Range (l1, h1) ->
+      if l1 = low then Inf low else Top
+  | Range (l1, h1), Minf up | Minf up, Range (l1, h1) ->
+      if h1 = up then Minf up else Top
+  | _, _ -> Top
 
 let subset a b =
   match (a, b) with
