@@ -80,6 +80,7 @@ let add (_i1 : t) (_i2 : t) : t =
   | Inf i -> ( match _i2 with Range (low, high) -> Inf (i + low) | _ -> Top)
   | Top -> Top
 
+(* Need to be tested but logic is good *)
 let sub (_i1 : t) (_i2 : t) : t =
   match _i1 with
   | Range (low1, high1) -> (
@@ -93,7 +94,29 @@ let sub (_i1 : t) (_i2 : t) : t =
   | Inf i -> ( match _i2 with Range (low, high) -> Inf (high - i) | _ -> Top)
   | Top -> Top
 
-let mul _i1 _i2 = Top
+let mul_max (l1 : int) (h1 : int) (l2 : int) (h2 : int): int =
+  let m1 = l1 * l2 in
+  let m2 = l1 * h2 in
+  let m3 = h1 * l2 in
+  let m4 = h1 * h2 in
+  max (max m1 m2) (max m3 m4)
+
+let mul_min (l1 : int) (h1 : int) (l2 : int) (h2 : int): int =
+  let m1 = l1 * l2 in
+  let m2 = l1 * h2 in
+  let m3 = h1 * l2 in
+  let m4 = h1 * h2 in
+  min (min m1 m2) (min m3 m4)
+
+(* Need to be had logic handling Inf and Minf *)
+let mul (_i1 : t) (_i2 : t) : t =
+  match _i1 with
+  | Range (low1, high1) -> (
+      match _i2 with
+      | Range (low2, high2) -> Range (mul_min low1 high1 low2 high2, mul_max low1 high1 low2 high2)
+      | Top -> Top)
+  | Top -> Top
+
 let div _i1 _i2 = Top
 
 (* truth handling *)
