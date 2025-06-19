@@ -251,6 +251,21 @@ module Make (D : D) = struct
     in
     build_expr loc node joined_state joined_value
 
+  (* [accumulate cond body initial] simulates one additional iteration of a while-loop:
+    - It analyzes the loop condition [cond] under the current abstract state [initial].
+    - filters this state to keep only the executions where the condition *may be* true
+        (i.e., where the loop would proceed).
+    - The loop body [body] is analyzed under this filtered state.
+    - joins the resulting state with the original [initial] to accumulate
+        the effect of one more potential loop iteration.
+    *)
+  and accumulate (cond : expr) (body : expr) (initial : State.t) =
+    let cond_annot = analyze_expr initial cond in
+    let s' = cond_annot.e_state in
+    let s' = filter s' cond_annot true in
+    let ab = analyze_expr s' body in
+    State.join initial ab.e_state
+
   (* Step 3: Analyze a while loop by evaluating its condition and body
      repeatedly until the condition can be proven to be statically
      false. Raises Not_Implement_Yet if the number of iteration
