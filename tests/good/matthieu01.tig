@@ -1,0 +1,7 @@
+let
+  type a = array of int
+  var x := a[3] of 42
+  var y := range(0,2)
+in
+  x[y]
+end

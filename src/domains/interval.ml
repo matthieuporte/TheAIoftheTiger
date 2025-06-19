@@ -178,9 +178,31 @@ let gt i1 i2 =
       | _ -> maybe_)
   | _ -> maybe_
 
-let ge i1 i2 = join (gt i1 i2) (eq i1 i2)
-let lt i1 i2 = reverse (ge i1 i2)
-let le i1 i2 = reverse (gt i1 i2)
+let ge i1 i2 =
+  match i1 with
+  | Range (low1, high1) -> (
+      match i2 with
+      | Range (low2, high2) ->
+          if low1 >= high2 then true_
+          else if low2 > high1 then false_
+          else maybe_
+      | Minf up -> if low1 >= up then true_ else maybe_
+      | Inf low -> if high1 <= low then false_ else maybe_
+      | _ -> maybe_)
+  | Minf up -> (
+      match i2 with
+      | Range (low2, high2) -> if up < low2 then false_ else maybe_
+      | Inf low -> if up < low then false_ else maybe_
+      | _ -> maybe_)
+  | Inf low -> (
+      match i2 with
+      | Range (low2, high2) -> if low >= high2 then true_ else maybe_
+      | Minf up -> if up <= low then true_ else maybe_
+      | _ -> maybe_)
+  | _ -> maybe_
+
+let lt i1 i2 = gt i2 i1
+let le i1 i2 = ge i2 i1
 
 (* constructors *)
 let of_int x = Range (x, x)
