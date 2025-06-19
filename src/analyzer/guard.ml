@@ -39,7 +39,6 @@ module Make (D : Domain.D) = struct
     | Gt -> Le
     | Ge -> Lt
 
-
   (** utility function to turn a comparison operator to its filtering
       counterpart in the abstract domain *)
   let filter_fun cmp_op =
@@ -87,6 +86,7 @@ module Make (D : Domain.D) = struct
      for refinement (e.g., expressions with side-effects ).
   *)
 
+  (* to complete *)
   let rec filter_annot (state : State.t)
       (cond : (State.t, Value.t) Annotast.expr) (r : bool) : State.t =
     match cond.e_payload with

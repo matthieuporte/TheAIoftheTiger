@@ -89,19 +89,18 @@ let sub (_i1 : t) (_i2 : t) : t =
       | Minf i -> Inf (low1 - i)
       | Inf i -> Minf (high1 - i)
       | Top -> Top)
-  | Minf i -> (
-      match _i2 with Range (low, high) -> Inf (low - i) | _ -> Top)
+  | Minf i -> ( match _i2 with Range (low, high) -> Inf (low - i) | _ -> Top)
   | Inf i -> ( match _i2 with Range (low, high) -> Inf (high - i) | _ -> Top)
   | Top -> Top
 
-let mul_max (l1 : int) (h1 : int) (l2 : int) (h2 : int): int =
+let mul_max (l1 : int) (h1 : int) (l2 : int) (h2 : int) : int =
   let m1 = l1 * l2 in
   let m2 = l1 * h2 in
   let m3 = h1 * l2 in
   let m4 = h1 * h2 in
   max (max m1 m2) (max m3 m4)
 
-let mul_min (l1 : int) (h1 : int) (l2 : int) (h2 : int): int =
+let mul_min (l1 : int) (h1 : int) (l2 : int) (h2 : int) : int =
   let m1 = l1 * l2 in
   let m2 = l1 * h2 in
   let m3 = h1 * l2 in
@@ -113,9 +112,10 @@ let mul (_i1 : t) (_i2 : t) : t =
   match _i1 with
   | Range (low1, high1) -> (
       match _i2 with
-      | Range (low2, high2) -> Range (mul_min low1 high1 low2 high2, mul_max low1 high1 low2 high2)
-      | Top -> Top)
-  | Top -> Top
+      | Range (low2, high2) ->
+          Range (mul_min low1 high1 low2 high2, mul_max low1 high1 low2 high2)
+      | _ -> Top)
+  | _ -> Top
 
 let div _i1 _i2 = Top
 
