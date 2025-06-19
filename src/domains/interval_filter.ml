@@ -27,8 +27,30 @@ let filter_eq i1 i2 =
       Range (l, h) |> validate
   | _ -> i1
 
-   let filter_ne i1 i2 = i1
-   let filter_gt i1 i2 = i1
-   let filter_ge i1 i2 = i1
-   let filter_lt i1 i2 = i1
-   let filter_le i1 i2 = i1
+let filter_ne i1 i2 =
+  match (i1, i2) with
+  | Range (l1, h1), Range (c, c2) when c = c2 ->
+      if l1 = c then Range (l1 + 1, h1)
+      else if h1 = c then Range (l1, h1 - 1)
+      else i1
+  | _ -> i1
+
+let filter_gt i1 i2 =
+  match (i1, i2) with
+  | Range (l1, h1), Range (l2, h2) -> Range (max l1 l2 + 1, h1)
+  | _ -> i1
+
+let filter_ge i1 i2 =
+  match (i1, i2) with
+  | Range (l1, h1), Range (l2, h2) -> Range (max l1 l2, h1)
+  | _ -> i1
+
+let filter_lt i1 i2 =
+  match (i1, i2) with
+  | Range (l1, h1), Range (l2, h2) -> Range (l1, min h1 (h2 - 1))
+  | _ -> i1
+
+let filter_le i1 i2 =
+  match (i1, i2) with
+  | Range (l1, h1), Range (l2, h2) -> Range (l1, min h1 h2)
+  | _ -> i1
