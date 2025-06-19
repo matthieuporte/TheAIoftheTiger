@@ -1,6 +1,6 @@
 let
 var x:= 0
-var y := (x := x + 1; range(0,1)) | (x := x + 1; true)
+var y := (x := x + 1; range(0,1)) | (x := x + 1; 1)
 in
 if x = 1 & x = 2 then 1/0 else 42
 end
