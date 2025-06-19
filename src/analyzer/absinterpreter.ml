@@ -232,11 +232,13 @@ module Make (D : D) = struct
     let open Annotast in
     let cond_annot = analyze_expr state cond in
     let truth = Absint.truth (Value.cast_int loc cond_annot.e_value) in
-    let tbr_annot = analyze_expr cond_annot.e_state tbr in
+    let filtered_true_state = filter cond_annot.e_state cond_annot true in
+    let filtered_false_state = filter cond_annot.e_state cond_annot false in
+    let tbr_annot = analyze_expr filtered_true_state tbr in
     (* Return None if none, an Annotast expr otherwise *)
     let (fbr_annot : (State.t, Value.t) Annotast.expr option) =
-      (* we use the state from cond_annot because we cannot go in both branhces *)
-      (Option.map (fun e -> analyze_expr cond_annot.e_state e)) fbr
+      (* we use the state from cond_annot because we cannot go in both branches *)
+      (Option.map (fun e -> analyze_expr filtered_false_state e)) fbr
     in
     let node = AIfThenElse (cond_annot, tbr_annot, fbr_annot) in
     let joined_state, joined_value =
