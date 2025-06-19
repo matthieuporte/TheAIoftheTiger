@@ -215,9 +215,12 @@ module Make (D : D) = struct
     (* lazy evaluation, _ represents False or Unknown *)
     match (op, Absint.truth left_int) with
     | And, True -> build_expr loc node right_annot.e_state value
-    | And, _ -> build_expr loc node left_annot.e_state value
+    | And, False -> build_expr loc node left_annot.e_state value
     | Or, True -> build_expr loc node left_annot.e_state value
-    | Or, _ -> build_expr loc node right_annot.e_state value
+    | Or, False -> build_expr loc node right_annot.e_state value
+    | _, Unknown ->
+        let joined_state = State.join left_annot.e_state right_annot.e_state in
+        build_expr loc node joined_state value
 
   (* Step 3: Analyze an if-expression by evaluating the condition and both
      branches. Joins the resulting states and values.
