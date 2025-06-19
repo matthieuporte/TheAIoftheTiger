@@ -280,7 +280,13 @@ module Make (D : D) = struct
       (body : expr) : (State.t, Value.t) Annotast.expr =
     let open Annotast in
     match count with
-    | 5 -> Utils.niy "Max iter reached"
+    | 5 ->
+        let accumulated_state = fix (accumulate cond body) state in
+        let cond_annot = analyze_expr accumulated_state cond in
+        let body_annot = analyze_expr cond_annot.e_state body in
+        let node = AWhile (cond_annot, body_annot) in
+        build_expr loc node body_annot.e_state body_annot.e_value
+    (* | 5 -> Utils.niy "Max iter reached" *)
     (* | Utils.max_iter -> Utils.niy "Max iter reached" *)
     | _ -> (
         let cond_annot = analyze_expr state cond in
@@ -295,6 +301,7 @@ module Make (D : D) = struct
   and analyze_while (state : State.t) (loc : location) (cond : expr)
       (body : expr) : (State.t, Value.t) Annotast.expr =
     hat_while 0 state loc cond body
+  (* fix (accumulate expr body state) state *)
 
   (* Evaluates an lvalue to read its value.
      - If the lvalue is a variable, retrieves its value from the current state.
