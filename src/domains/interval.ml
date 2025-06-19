@@ -80,7 +80,19 @@ let add (_i1 : t) (_i2 : t) : t =
   | Inf i -> ( match _i2 with Range (low, high) -> Inf (i + low) | _ -> Top)
   | Top -> Top
 
-let sub _i1 _i2 = Top
+let sub (_i1 : t) (_i2 : t) : t =
+  match _i1 with
+  | Range (low1, high1) -> (
+      match _i2 with
+      | Range (low2, high2) -> Range (low1 - high2, high1 - low2)
+      | Minf i -> Inf (low1 - i)
+      | Inf i -> Minf (high1 - i)
+      | Top -> Top)
+  | Minf i -> (
+      match _i2 with Range (low, high) -> Inf (low - i) | _ -> Top)
+  | Inf i -> ( match _i2 with Range (low, high) -> Inf (high - i) | _ -> Top)
+  | Top -> Top
+
 let mul _i1 _i2 = Top
 let div _i1 _i2 = Top
 
