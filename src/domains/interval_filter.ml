@@ -43,6 +43,7 @@ let filter_gt i1 i2 =
 let filter_ge i1 i2 =
   match (i1, i2) with
   | Range (l1, h1), Range (l2, h2) -> Range (max l1 l2, h1)
+  | Top, Range (l2, h2) -> Inf l2
   | _ -> i1
 
 let filter_lt i1 i2 =
@@ -53,4 +54,5 @@ let filter_lt i1 i2 =
 let filter_le i1 i2 =
   match (i1, i2) with
   | Range (l1, h1), Range (l2, h2) -> Range (l1, min h1 h2)
+  | Top, Range (l2, h2) -> Inf l2
   | _ -> i1

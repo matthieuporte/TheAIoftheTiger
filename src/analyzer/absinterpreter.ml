@@ -289,6 +289,9 @@ module Make (D : D) = struct
         let accumulated_state = fix (accumulate cond body) state in
         let cond_annot = analyze_expr accumulated_state cond in
         let node = AWhile (cond_annot, cond_annot) in
+        (* let filtered_state = filter cond_annot.e_state cond_annot false in *)
+        (* let narrow_state = Absint.join filtered_state cond_annot.e_state in *)
+        (* let narrow_state = filter cond_annot.e_state cond_annot false in *)
         build_expr loc node cond_annot.e_state prev_body
     (* | 10 -> Utils.niy "Max iter reached" *)
     (* | Utils.max_iter -> Utils.niy "Max iter reached" *)
