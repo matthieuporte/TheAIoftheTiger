@@ -68,56 +68,64 @@ let neg (i : t) : t =
 
 (* Step 4 *)
 let add (_i1 : t) (_i2 : t) : t =
-  match _i1 with
-  | Range (low1, high1) -> (
-      match _i2 with
-      | Range (low2, high2) -> Range (low1 + low2, high1 + high2)
-      | Minf i -> Minf (i + high1)
-      | Inf i -> Inf (i + low1)
-      | Top -> Top)
-  | Minf i -> (
-      match _i2 with Range (low, high) -> Minf (i + high) | _ -> Top)
-  | Inf i -> ( match _i2 with Range (low, high) -> Inf (i + low) | _ -> Top)
-  | Top -> Top
+  match _i1, _i2 with
+  | Top, _ -> Top
+  | _, Top -> Top
+  | Range (low1, high1), Range (low2, high2) -> Range (low1 + low2, high1 + high2)
+  | Range (_, high), Minf i -> Minf (i + high)
+  | Range (low, _), Inf i -> Inf (i + low)
+  | Inf i, Range (low, _) -> Inf (i + low)
+  | Inf _, _ -> Top
+  | Minf i, Range (_, high) -> Minf (i + high)
+  | Minf _, _ -> Top
 
-(* Need to be tested but logic is good *)
+(* Can be imporved with more precision on Inf and Minf *)
 let sub (_i1 : t) (_i2 : t) : t =
-  match _i1 with
-  | Range (low1, high1) -> (
-      match _i2 with
-      | Range (low2, high2) -> Range (low1 - high2, high1 - low2)
-      | Minf i -> Inf (low1 - i)
-      | Inf i -> Minf (high1 - i)
-      | Top -> Top)
-  | Minf i -> ( match _i2 with Range (low, high) -> Inf (low - i) | _ -> Top)
-  | Inf i -> ( match _i2 with Range (low, high) -> Inf (high - i) | _ -> Top)
-  | Top -> Top
+  match _i1, _i2 with
+  | Top, _ -> Top
+  | _, Top -> Top
+  | Range (low1, high1), Range (low2, high2) -> Range (low1 - high2, high1 - low2)
+  | Range (low, _), Minf i -> Inf (low - i)
+  | Range (_, high), Inf i -> Minf (high - i)
+  | Inf i, Range (_, high) -> Inf (high - i)
+  | Inf _, _ -> Top
+  | Minf i, Range (low, _) -> Inf (low - i)
+  | Minf _, _ -> Top
+  
 
-let mul_max (l1 : int) (h1 : int) (l2 : int) (h2 : int) : int =
+let mul_range (l1 : int) (h1 : int) (l2 : int) (h2 : int) : int * int =
   let m1 = l1 * l2 in
   let m2 = l1 * h2 in
   let m3 = h1 * l2 in
   let m4 = h1 * h2 in
-  max (max m1 m2) (max m3 m4)
+  min (min m1 m2) (min m3 m4), max (max m1 m2) (max m3 m4)
 
-let mul_min (l1 : int) (h1 : int) (l2 : int) (h2 : int) : int =
-  let m1 = l1 * l2 in
-  let m2 = l1 * h2 in
-  let m3 = h1 * l2 in
-  let m4 = h1 * h2 in
-  min (min m1 m2) (min m3 m4)
+let div_range (l1 : int) (h1 : int) (l2 : int) (h2 : int) : int * int =
+  let m1 = l1 / l2 in
+  let m2 = l1 / h2 in
+  let m3 = h1 / l2 in
+  let m4 = h1 / h2 in
+  min (min m1 m2) (min m3 m4), max (max m1 m2) (max m3 m4)
 
 (* Need to be had logic handling Inf and Minf *)
 let mul (_i1 : t) (_i2 : t) : t =
-  match _i1 with
-  | Range (low1, high1) -> (
-      match _i2 with
-      | Range (low2, high2) ->
-          Range (mul_min low1 high1 low2 high2, mul_max low1 high1 low2 high2)
-      | _ -> Top)
+  match _i1, _i2 with
+  | Range (low1, high1), Range (low2, high2) -> Range (mul_range low1 high1 low2 high2)
   | _ -> Top
 
-let div _i1 _i2 = Top
+let div (_i1 : t) (_i2 : t) : t =
+  match _i1, _i2 with
+  (* Division by 0 *)
+  | _, Range (low, high) when low <= 0 && high >= 0 -> Top
+  | _, Inf i when i <= 0 -> Top
+  | _, Minf i when i >= 0 -> Top
+  (* Left is range *)
+  | Range (low1, high1), Range (low2, high2) -> Range (div_range low1 high1 low2 high2)
+  | Range (low, high), Inf i when low > 0 && high > 0 -> Range (0, high / i)
+  | Range (low, high), Inf i when low < 0 && high < 0 -> Range (low / i, 0)
+  | Range (low, high), Minf i when low > 0 && high > 0 -> Range (high/i, 0)
+  | Range (low, high), Minf i when low < 0 && high < 0 -> Range (0, low / i)
+  |_ -> Top
 
 (* truth handling *)
 let false_ = Range (0, 0)
