@@ -285,18 +285,11 @@ module Make (D : D) = struct
       (body : expr) (prev_body : Value.t) : (State.t, Value.t) Annotast.expr =
     let open Annotast in
     match count with
-    | 15 -> (
+    | 15 ->
         let accumulated_state = fix (accumulate cond body) state in
         let cond_annot = analyze_expr accumulated_state cond in
-        let truth = Absint.truth (Value.cast_int loc cond_annot.e_value) in
-        match truth with
-        | False ->
-            let node = AWhile (cond_annot, cond_annot) in
-            build_expr loc node cond_annot.e_state prev_body
-        | _ ->
-            let body_annot = analyze_expr cond_annot.e_state body in
-            let node = AWhile (cond_annot, body_annot) in
-            build_expr loc node body_annot.e_state body_annot.e_value)
+        let node = AWhile (cond_annot, cond_annot) in
+        build_expr loc node cond_annot.e_state prev_body
     (* | 10 -> Utils.niy "Max iter reached" *)
     (* | Utils.max_iter -> Utils.niy "Max iter reached" *)
     | _ -> (
