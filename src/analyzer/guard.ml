@@ -90,31 +90,32 @@ module Make (D : Domain.D) = struct
   let rec filter_annot (state : State.t)
       (cond : (State.t, Value.t) Annotast.expr) (r : bool) : State.t =
     match cond.e_payload with
-    | ABoolop (a, op, b) -> (
-        let myint =
-          match a.e_value with
-          | Int i -> i
-          | r -> Format.asprintf "Failed casting as an int\n" |> Errors.fail
-        in
-        let truth = Absint.truth myint in
-        match (op, truth) with
-        | And, True ->
-            let state_a = filter_annot state a r in
-            let state_b = filter_annot state_a b r in
-            state_b
-        | And, False -> filter_annot state a r
-        | Or, True -> filter_annot state a r
-        | Or, False -> filter_annot state b r
-        | _, _ ->
-            let state_a = filter_annot state a r in
-            let state_b = filter_annot state_a b r in
-            State.join state_a state_b)
+    (* | ABoolop (a, op, b) -> ( *)
+    (*     let myint = *)
+    (*       match a.e_value with *)
+    (*       | Int i -> i *)
+    (*       (\* | r -> Format.asprintf "Failed casting as an int\n" |> Errors.fail *\) *)
+    (*       | r -> raise Unfiltrable *)
+    (*     in *)
+    (*     let truth = Absint.truth myint in *)
+    (*     match (op, truth) with *)
+    (*     | And, True -> *)
+    (*         let state_a = filter_annot state a r in *)
+    (*         let state_b = filter_annot state_a b r in *)
+    (*         state_b *)
+    (*     | And, False -> filter_annot state a r *)
+    (*     | Or, True -> filter_annot state a r *)
+    (*     | Or, False -> filter_annot state b r *)
+    (*     | _, _ -> *)
+    (*         let state_a = filter_annot state a r in *)
+    (*         let state_b = filter_annot state_a b r in *)
+    (*         State.join state_a state_b) *)
     (* guards of the form [x < c] where [c] is a constant *)
     | ARelop ({ e_payload = ALval id; _ }, cmp, { e_value = (v : Value.t); _ })
       ->
         let cmp = if r then cmp else inv cmp in
         compare state id cmp v
     | _ ->
-        let _ = Printf.printf "unfiltrable\n" in
+        (* let _ = Printf.printf "unfiltrable\n" in *)
         raise Unfiltrable
 end
